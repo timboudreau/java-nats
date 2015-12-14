@@ -229,6 +229,10 @@ public class ClientHandshakeHandler
     if (done () && wasDone == false)
       {
         final boolean success = state == States.HANDSHAKE_COMPLETE;
+
+        if (channel != null)
+          channel.pipeline ().remove (this);
+
         if (success == false && channel != null)
           {
             // Do this before cancelling futures, our listeners
@@ -288,7 +292,6 @@ public class ClientHandshakeHandler
               System.err.flush();
             }
           }
-        channel.pipeline ().remove (this);
         if (handler != null)
           handler.handshakeCompleted (success, channel, serverInfo, error);
       }
