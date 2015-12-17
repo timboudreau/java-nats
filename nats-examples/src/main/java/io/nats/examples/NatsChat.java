@@ -20,8 +20,11 @@ import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import java.io.IOException;
 import java.net.URI;
+import java.security.AlgorithmParameters;
 import java.security.MessageDigest;
+import java.util.Base64;
 
 /**
  * Secure chat example in Java that follows the go example.
@@ -34,14 +37,39 @@ public class NatsChat
 {
   static final private String PROTO = "1";
 
+  private static String read_line (String prompt)
+    throws IOException
+  {
+    String res;
+
+    java.io.Console cons = System.console ();
+    while (true)
+      {
+        System.out.print (prompt);
+        System.out.flush ();
+        if (cons != null)
+          res = cons.readLine ();
+        else
+          res = new java.io.BufferedReader (new java.io.InputStreamReader (System.in)).readLine ();
+
+        if (res != null)
+          {
+            // ignore any blank lines, trim off white space...
+            res = res.trim ();
+            if (res.length () == 0)
+              continue;
+          }
+        return res;
+      }
+  }
   public static void main (String args[])
     throws Exception
     {
-      URI uri = Options.DEFAULT_URI;
+      URI uri = new URI ("nats://demo.nats.io:4443");
 
       if (args.length != 2)
         {
-          System.err.println ("".format ("usage: %s subject key", NatsChat.class.getSimpleName ()));
+          System.err.format ("usage: %s subject key%n", NatsChat.class.getSimpleName ());
           System.exit (1);
         }
 
@@ -57,6 +85,8 @@ public class NatsChat
       final Cipher decryptor = Cipher.getInstance (ALGO);
       decryptor.init (Cipher.DECRYPT_MODE, secret_key);
 
+      final String my_name = read_line ("Your name: ");
+
       try
 	{
           final Context ctx = new io.nats.imp.Context ();
@@ -67,10 +97,10 @@ public class NatsChat
           opts.servers.add (uri);
 
           final Connection conn = ctx.connect (opts);
-          final Destination destination = conn.destination ("".format ("snats.%s.%s", PROTO, subject));
+          final Destination destination = conn.destination (String.format ("snats.%s.%s", PROTO, subject));
           final ByteBuf msg_body = ByteBufAllocator.DEFAULT.heapBuffer ();
 
-	  System.out.println ("connected to nats: " + conn);
+	  System.out.println ("connected to nats secure chat server @ " + conn);
 
           conn.subscribe (destination, new MessageHandler<ByteBuf> () {
             private volatile int msgNum = 0;
@@ -81,6 +111,7 @@ public class NatsChat
                                    ByteBuf body)
             {
               final int n = ++msgNum;
+              // FIXME: jam: decode the json object from the body and decrypt only the (base64) encrpted_msg field
               final byte raw_mesg[] = new byte[body.readableBytes ()];
               body.readBytes (raw_mesg);
               body.clear ();
@@ -90,48 +121,35 @@ public class NatsChat
               }
               catch (IllegalBlockSizeException ibe)
               {
-                body.writeBytes ("".format ("unable to decrypt message: %s", ibe.getMessage ()).getBytes ());
+                body.writeBytes (String.format ("unable to decrypt message: %s", ibe.getMessage ()).getBytes ());
               }
               catch (BadPaddingException pbe)
               {
-                body.writeBytes ("".format ("unable to decrypt message: %s", pbe.getMessage ()).getBytes ());
+                body.writeBytes (String.format ("unable to decrypt message: %s", pbe.getMessage ()).getBytes ());
               }
 
-              System.out.printf ("%5s: received message on %s: %s\n",
+              System.out.format ("%5s: received message on %s: %s%n",
                                  n, subject, body.toString (CharsetUtil.US_ASCII));
               System.out.flush ();
             }
           });
-          /*
-          int i;
-          for (i = 0; i < 10; i++)
-            {
-              Destination dest = conn.destination (String.format (SUBSCRIBE_SUBJECT_FORMAT, i));
-              conn.publish (dest, null, msg_body.duplicate ());
-            }
-          if (!subscribe)
-            {
-              System.out.println ("published " + i + " messages to " + subject);
-              return;
-            }
-          final long done_pub_time = System.currentTimeMillis ();
           while (true)
             {
-              final int how_many = msgNum;
-              final int diff = i - how_many;
-              final long now = System.currentTimeMillis ();
-              final long delta_time = now - done_pub_time;
-              //System.out.println ("td=" + delta_time + " diff=" + diff + " received=" + how_many + " sent=" + i);
-              //System.out.flush ();
-              if (diff == 0)
-                {
-                  System.out.println ("that took: " + TimeUnit.MILLISECONDS.toSeconds (delta_time)
-                                      + " to publish " + i + " messages of " + msg_body.writerIndex () + " ("
-                                      + (i * msg_body.writerIndex ()) + ")");
-                  break;
-                }
-              Thread.sleep (TimeUnit.SECONDS.toMillis (1) / 200);
-            }*/
+              final String line = read_line (String.format ("%s> ", my_name));
+              if (line == null)
+                break;
+              if (line.equals ("bye") || line.equals ("exit")) break;
+              byte encrypted[] = encryptor.doFinal (line.getBytes (CharsetUtil.UTF_8));
+              byte encoded[] = Base64.getEncoder ().encode (encrypted);
+              final String encoded_str = new String (encoded);
+
+              msg_body.clear ();
+              msg_body.writeBytes (String.format ("{ \"name\": \"%s\", \"encrpyed_msg\": \"%s\" }",
+                                                  my_name,
+                                                  encoded_str).getBytes (CharsetUtil.US_ASCII));
+              conn.publish (destination, null, msg_body.duplicate ());
+            }
+          conn.close ();
         }
       catch (NatsException ex)
 	{
