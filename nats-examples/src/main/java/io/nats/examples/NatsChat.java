@@ -24,7 +24,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.security.AlgorithmParameters;
 import java.security.MessageDigest;
-import java.util.Base64;
+//import java.util.Base64;
 
 /**
  * Secure chat example in Java that follows the go example.
@@ -140,7 +140,8 @@ public class NatsChat
                 break;
               if (line.equals ("bye") || line.equals ("exit")) break;
               byte encrypted[] = encryptor.doFinal (line.getBytes (CharsetUtil.UTF_8));
-              byte encoded[] = Base64.getEncoder ().encode (encrypted);
+              //byte encoded[] = Base64.getEncoder ().encode (encrypted);
+	      byte encoded[] = {};
               final String encoded_str = new String (encoded);
 
               msg_body.clear ();
