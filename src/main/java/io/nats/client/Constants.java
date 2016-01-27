@@ -43,42 +43,6 @@ public final class Constants {
 	 * This property is defined as String {@value #DEFAULT_SSL_PROTOCOL}
 	 */
 	static final String		DEFAULT_SSL_PROTOCOL 	= "TLSv1.2";
-	/**
-	 * Default maximum number of reconnect attempts. 
-	 * <p>
-	 * This property is defined as String {@value #DEFAULT_MAX_RECONNECT}
-	 */
-	static final int		DEFAULT_MAX_RECONNECT	= 60;
-	/**
-	 * Default wait time before attempting reconnection to the same server 
-	 * <p>
-	 * This property is defined as String {@value #DEFAULT_RECONNECT_WAIT}
-	 */
-	static final int		DEFAULT_RECONNECT_WAIT	= 2 * 1000;
-	/**
-	 * Default connection timeout
-	 * <p>
-	 * This property is defined as String {@value #DEFAULT_TIMEOUT}
-	 */
-	static final int		DEFAULT_TIMEOUT			= 2 * 1000;
-	/**
-	 * Default ping interval; <=0 means disabled
-	 * <p>
-	 * This property is defined as String {@value #DEFAULT_PING_INTERVAL}
-	 */
-	static final int 		DEFAULT_PING_INTERVAL	= 2 * 60000;
-	/**
-	 * Default maximum number of pings that have not received a response
-	 * <p>
-	 * This property is defined as String {@value #DEFAULT_MAX_PINGS_OUT}
-	 */
-	static final int		DEFAULT_MAX_PINGS_OUT	= 2;
-	/**
-	 * Default maximum channel length
-	 * <p>
-	 * This property is defined as String {@value #DEFAULT_MAX_PENDING_MSGS}
-	 */
-	static final int		DEFAULT_MAX_PENDING_MSGS	= 65536;
 
 	/**
 	 * Maximum size of a control line (message header)
@@ -138,8 +102,11 @@ public final class Constants {
 	public final static String ERR_PROTOCOL 				= "nats: protocol error";
 	
 	// Encoder names
-	public final static String DEFAULT_ENCODER = "default";
-	public final static String JSON_ENCODER    = "json";
+	public final static String DEFAULT_ENCODER 				= "default";
+	public final static String NATIVE_ENCODER 				= "serializable";
+	public final static String JSON_ENCODER    				= "json";
+	public final static String PROTOBUF_ENCODER    			= "protobuf";
+
 //	GOB_ENCODER     = "gob"
 	
 	// Property names
@@ -238,5 +205,5 @@ public final class Constants {
 	/**
 	 * This property is defined as String {@value #PROP_MAX_PENDING_MSGS}
 	 */
-	public final static String PROP_MAX_PENDING_MSGS 		= PFX + "maxpings";
+	public final static String PROP_MAX_PENDING_MSGS 		= PFX + "maxpending";
 }

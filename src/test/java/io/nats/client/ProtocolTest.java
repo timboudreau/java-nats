@@ -232,6 +232,27 @@ public class ProtocolTest {
 			} 
 		} 
 	}
+	
+//	@Test
+//	public void testNewServerInfo() {
+//		try (TCPConnectionMock mock = new TCPConnectionMock())
+//		{
+//
+//			try (ConnectionImpl c = new ConnectionFactory().createConnection(mock)) {
+//				assertTrue(!c.isClosed());
+//				mock.setSendNewInfo(true);
+//				String expected = TCPConnectionMock.newInfo;				
+//				ServerInfo info = c.getConnectedServerInfo();
+//
+//				System.err.println(expected);
+//				System.err.println(info);
+//				// No exception means we're good.
+////				assertEquals("Wrong server INFO", expected, info);
+//			} catch (IOException | TimeoutException e) {
+//				fail(e.getMessage());
+//			} 
+//		} 
+//	}
 
 	@Test
 	public void testSendConnectEx() {
@@ -282,7 +303,6 @@ public class ProtocolTest {
 		try (TCPConnectionMock mock = new TCPConnectionMock())
 		{
 			mock.setSendGenericError(true);
-			ConnectionFactory cf = new ConnectionFactory();
 			try (ConnectionImpl c = new ConnectionFactory().createConnection(mock)) {
 				fail("Shouldn't have connected.");
 			} catch (IOException | TimeoutException e) {

@@ -41,6 +41,10 @@ class TCPConnectionMock extends TCPConnection implements Runnable, AutoCloseable
 	volatile boolean shutdown = false;
 
 	public final static String defaultInfo = "INFO {\"server_id\":\"a1c9cf0c66c3ea102c600200d441ad8e\",\"version\":\"0.7.2\",\"go\":\"go1.4.2\",\"host\":\"0.0.0.0\",\"port\":4222,\"auth_required\":false,\"ssl_required\":false,\"tls_required\":false,\"tls_verify\":false,\"max_payload\":1048576}\r\n";
+	public final static String newInfo = "INFO {\"server_id\":\"a1c9cf0c66c3ea102c600200d441ad8e\",\"version\":\"0.7.2\",\"go\":\"go1.4.2\",\"host\":\"0.0.0.0\",\"port\":4222,\"auth_required\":false,\"ssl_required\":false,\"tls_required\":false,\"tls_verify\":false,\"max_payload\":1048576,"
+			+ "\"servers\":["
+			+ "\"nats://server1:4222\", \"nats://server2:4222\""
+			+ "]}\r\n";
 
 	ReentrantLock mu = new ReentrantLock();
 	Socket client = null;
@@ -94,6 +98,8 @@ class TCPConnectionMock extends TCPConnection implements Runnable, AutoCloseable
 	private boolean noPongs;
 
 	private boolean throwTimeoutException;
+	
+	private boolean sendNewInfo;
 
 	/* (non-Javadoc)
 	 * @see io.nats.client.TCPConnection#open(java.lang.String, int, int)
@@ -272,7 +278,11 @@ class TCPConnectionMock extends TCPConnection implements Runnable, AutoCloseable
 					String s = defaultInfo.replace("\"tls_required\":false", "\"tls_required\":true");
 					serverInfo = new ServerInfo(s);
 				}
-				bw.write(serverInfo.toString().getBytes());
+				if (sendNewInfo) {
+					bw.write(newInfo.toString().getBytes());
+				} else {
+					bw.write(serverInfo.toString().getBytes());
+				}
 				bw.flush();
 				logger.trace("=> {}", serverInfo.toString().trim());
 			}
@@ -520,6 +530,9 @@ class TCPConnectionMock extends TCPConnection implements Runnable, AutoCloseable
 	}
 	public void setNoPongs(boolean noPongs) {
 		this.noPongs = noPongs;
+	}
+	public void setSendNewInfo(boolean sendNewInfo) {
+		this.sendNewInfo = sendNewInfo;
 	}
 
 	public void bounce() {

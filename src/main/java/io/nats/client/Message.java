@@ -17,9 +17,9 @@ import java.util.Arrays;
  * stream of uninterpreted bytes.
  */
 public class Message {
-	private String subject;
-	private String replyTo;
-	private byte[] data;  
+	protected String subject;
+	protected String replyTo;
+	protected byte[] data;  
 	protected SubscriptionImpl sub;
 
 	/**
@@ -169,4 +169,5 @@ public class Message {
 
         return sb.toString();
     }
+
 }

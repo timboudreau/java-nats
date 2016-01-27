@@ -172,7 +172,7 @@ public class UnitTestUtilities {
 
 	}
 
-	static void sleep(int timeout) {
+	public static void sleep(int timeout) {
 		sleep(timeout, TimeUnit.MILLISECONDS);
 	}
 

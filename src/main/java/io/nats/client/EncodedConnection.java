@@ -1,12 +1,11 @@
 package io.nats.client;
 
-public class EncodedConnection {
+public interface EncodedConnection extends AbstractConnection {
 
-	protected EncodedConnection(Connection c, String defaultEncoder) {
-		if (c == null) {
-			throw new IllegalArgumentException("Connection cannot be null");
-		}
-		// TODO test for bad encoder
-		
-	}
+	void subscribe(String subject, Handler<?> handler);
+
+	<T> void subscribe(String subject, String queue, Handler<T> handler);
+
+	<T> void publish(String string, T obj);
+
 }

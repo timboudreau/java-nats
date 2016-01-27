@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-class NATSServer implements Runnable, AutoCloseable
+public class NATSServer implements Runnable, AutoCloseable
 {
 	final static String GNATSD = "gnatsd";
     // Enable this for additional server debugging info.

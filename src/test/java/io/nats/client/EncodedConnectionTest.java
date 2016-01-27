@@ -14,6 +14,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 
 import static io.nats.client.Constants.*;
@@ -23,6 +24,8 @@ import static io.nats.client.Constants.*;
  *
  */
 public class EncodedConnectionTest {
+	@Rule
+	public TestCasePrinterRule pr = new TestCasePrinterRule(System.out);
 
 	/**
 	 * @throws java.lang.Exception
@@ -52,14 +55,13 @@ public class EncodedConnectionTest {
 	public void tearDown() throws Exception {
 	}
 
-	EncodedConnection newEConn() {
+	EncodedConnectionImpl newEConn() {
 		Connection nc = null;
-		EncodedConnection ec = null;
+		EncodedConnectionImpl ec = null;
 		try {
 			nc = new ConnectionFactory().createConnection();
-			ec = new EncodedConnection(nc, DEFAULT_ENCODER);		
+			ec = new EncodedConnectionImpl(nc, DEFAULT_ENCODER);		
 		} catch (IOException | TimeoutException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return ec;
@@ -67,10 +69,39 @@ public class EncodedConnectionTest {
 	
 	@Test
 	public void testConstructorErrors() {
-		Connection c = mock(Connection.class);
-		EncodedConnection ec = new EncodedConnection(c, DEFAULT_ENCODER);
+		Connection c = null;
 		
-		fail("Not yet implemented"); // TODO
+		boolean exThrown = false;
+		try {
+			new EncodedConnectionImpl(c, DEFAULT_ENCODER);
+		} catch (NullPointerException e) {
+			exThrown = true;
+		}
+		assertTrue("Expected exception for null connection", exThrown);
+
+		c = mock(Connection.class);
+
+		exThrown = false;
+		try {
+			new EncodedConnectionImpl(c, "foo22");
+		} catch (IllegalArgumentException e) {
+			exThrown = true;
+		}
+		assertTrue("Expected exception for bad encoder", exThrown);
+
+		when(c.isClosed()).thenReturn(true);
+		try {
+			new EncodedConnectionImpl(c, "default");
+		} catch (IllegalStateException e) {
+			assertEquals(ERR_CONNECTION_CLOSED, e.getMessage());
+			exThrown = true;
+		}
+		assertTrue("Expected exception for closed connection", exThrown);
+	}
+	
+	@Test
+	public void testMarshalString() {
+		
 	}
 
 }
