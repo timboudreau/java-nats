@@ -29,6 +29,7 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
 import static io.nats.client.Constants.*;
+import static io.nats.client.ConnectionFactory.*;
 
 @Category(UnitTest.class)
 public class ConnectionFactoryTest implements ExceptionHandler,
@@ -402,6 +403,29 @@ ClosedCallback, DisconnectedCallback, ReconnectedCallback {
 			fail("Should not have thrown exception.");
 		}
 	}
+
+	@Test
+	public void testSetUriWithToken() {
+		String secret = "$2a$11$3kIDaCxw.Glsl1.u5nKa6eUnNDLV5HV9tIuUp7EHhMt6Nm9myW1aS";
+		String urlString = String.format("nats://%s@natshost:2222", secret);
+
+		try {
+			ConnectionFactory cf = new ConnectionFactory(urlString);
+		} catch (Exception e) {
+			fail (e.getMessage());
+		}
+		
+		URI goodUri = URI.create(urlString);
+		System.err.println(goodUri.toString());
+		assertEquals(secret, goodUri.getRawUserInfo());
+		ConnectionFactory cf = new ConnectionFactory();
+		try {
+			cf.setUri(goodUri);
+			assertEquals(secret, cf.getUsername());
+		} catch (Exception e) {
+			fail (e.getMessage());
+		}
+	}
 	
 	@Test
 	public void testSetUriBadUserInfo() {
@@ -603,6 +627,23 @@ ClosedCallback, DisconnectedCallback, ReconnectedCallback {
 
 	}
 
+	@Test
+	public void testSetServersCommaDelimitedString() {
+		String servers = "nats://localhost:1234, nats://localhost:5678"; 
+		List<URI> s1 = new ArrayList<URI>();
+		ConnectionFactory cf = new ConnectionFactory(servers);
+//		cf.setServers(servers);
+		cf.setNoRandomize(true);
+
+		for (String s : servers.trim().split(",")) {
+			s1.add(URI.create(s.trim()));
+		}
+		
+		assertNull(cf.getUrlString());
+		assertEquals(s1, cf.getServers());
+		
+		
+	}
 	//	@Test
 	//	public void testIsNoRandomize() {
 	//		fail("Not yet implemented"); // TODO
@@ -780,7 +821,7 @@ ClosedCallback, DisconnectedCallback, ReconnectedCallback {
 	public void testGetSslContext() {
 		ConnectionFactory cf = new ConnectionFactory();
 		try {
-			SSLContext c = SSLContext.getInstance(Constants.DEFAULT_SSL_PROTOCOL);
+			SSLContext c = SSLContext.getInstance(DEFAULT_SSL_PROTOCOL);
 			cf.setSslContext(c);
 			assertEquals(c, cf.getSslContext());
 		} catch (NoSuchAlgorithmException e) {
@@ -792,7 +833,7 @@ ClosedCallback, DisconnectedCallback, ReconnectedCallback {
 	public void testSetSslContext() {
 		ConnectionFactory cf = new ConnectionFactory();
 		try {
-			SSLContext c = SSLContext.getInstance(Constants.DEFAULT_SSL_PROTOCOL);
+			SSLContext c = SSLContext.getInstance(DEFAULT_SSL_PROTOCOL);
 			cf.setSslContext(c);
 			assertEquals(c, cf.getSslContext());
 		} catch (NoSuchAlgorithmException e) {

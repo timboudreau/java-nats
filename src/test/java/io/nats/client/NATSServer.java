@@ -102,7 +102,7 @@ public class NATSServer implements Runnable, AutoCloseable
         if (debug)
         {
             psInfo.addArgument("-DV");
-            psInfo.addArgument("-l gnatsd.log");
+//            psInfo.addArgument("-l gnatsd.log");
         }
 
         return psInfo;

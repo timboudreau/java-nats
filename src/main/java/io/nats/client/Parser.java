@@ -15,7 +15,8 @@ import java.util.Map;
 import static io.nats.client.ConnectionImpl.DEFAULT_BUF_SIZE;
 
 final class Parser {
-
+	final static int MAX_CONTROL_LINE_SIZE = 1024;
+	
 	private ConnectionImpl nc;
 	
 	protected class ParseState {
@@ -36,8 +37,6 @@ final class Parser {
 		String 	scratch; 
 	}
 	
-	ParseState ps = null;
-
 	static enum NatsOp {
 	    		OP_START,
 	    	    OP_PLUS,
@@ -65,7 +64,9 @@ final class Parser {
 	    	    OP_PONG
 	}
 	
-	public Parser(ConnectionImpl connectionImpl) {
+	protected ParseState ps = null;
+	
+	protected Parser(ConnectionImpl connectionImpl) {
 		this.ps = new ParseState();
 		ps.argBufStream = ByteBuffer.wrap(ps.argBuf);
 		ps.msgBufStream = ByteBuffer.wrap(ps.msgBuf);

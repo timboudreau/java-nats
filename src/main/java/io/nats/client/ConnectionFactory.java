@@ -33,6 +33,31 @@ import static io.nats.client.Constants.*;
 public class ConnectionFactory implements Cloneable {
 
 	/**
+	 * 	Default server host
+	 * <p>
+	 * This property is defined as String {@value #DEFAULT_HOST}
+	 */
+	public static final String	DEFAULT_HOST		= "localhost";
+	/**
+	 * Default server port
+	 * <p>
+	 * This property is defined as int {@value #DEFAULT_PORT}
+	 */
+	public static final int DEFAULT_PORT			= 4222;
+	/**
+	 * Default server URL 
+	 * <p>
+	 * This property is defined as String {@value #DEFAULT_URL}
+	 */
+	public static final String 	DEFAULT_URL				= 
+			"nats://" + DEFAULT_HOST+ ":" + DEFAULT_PORT;	
+	/**
+	 * Default SSL/TLS protocol version
+	 * <p>
+	 * This property is defined as String {@value #DEFAULT_SSL_PROTOCOL}
+	 */
+	static final String		DEFAULT_SSL_PROTOCOL 	= "TLSv1.2";
+	/**
 	 * Default maximum number of reconnect attempts. 
 	 * <p>
 	 * This property is defined as String {@value #DEFAULT_MAX_RECONNECT}
@@ -51,7 +76,7 @@ public class ConnectionFactory implements Cloneable {
 	 */
 	public static final int		DEFAULT_TIMEOUT			= 2 * 1000;
 	/**
-	 * Default ping interval; <=0 means disabled
+	 * Default server ping interval. {@code <=0} means disabled
 	 * <p>
 	 * This property is defined as String {@value #DEFAULT_PING_INTERVAL}
 	 */
@@ -262,20 +287,28 @@ public class ConnectionFactory implements Cloneable {
 	public ConnectionFactory(String[] servers) {
 		this(null, servers);
 	}
-
+	
 	/**
 	 * Constructs a connection factory from a list of NATS server
 	 * URLs, using {@code url} as the primary address.
 	 * <p>
-	 * Note that {@code url} will be first in the list, even if 
-	 * the {@link #isNoRandomize()} is {@code false}
+	 * If {@code url} contains a single server address, that 
+	 * address will be first in the server list, even if 
+	 * {@link #isNoRandomize()} is {@code false}.
+	 * <p>
+	 * If {@code url} is a comma-delimited list of servers,
+	 * then {@code servers} will be ignored.
 	 * @param url the default server URL to set
 	 * @param servers the list of cluster server URL strings
 	 */
 	public ConnectionFactory(String url, String[] servers)
 	{
-		this.setUrl(url);
-		this.setServers(servers);
+		if (url != null && url.contains(",")) {
+			this.setServers(url);
+		} else {
+			this.setUrl(url);
+			this.setServers(servers);
+		}
 	}
 
 	/**
@@ -361,7 +394,7 @@ public class ConnectionFactory implements Cloneable {
 	 * is removed (unsubscribed by the connection).
 	 * 
 	 * @return the maximum number of pending messages allowable for this subscription
-	 * @see Constants#DEFAULT_MAX_PENDING_MSGS
+	 * @see #DEFAULT_MAX_PENDING_MSGS
 	 */
 	public int getMaxPendingMsgs() {
 		return this.maxPendingMsgs;
@@ -373,7 +406,7 @@ public class ConnectionFactory implements Cloneable {
 	 * is removed (unsubscribed by the connection).
 	 * 
 	 * @param max The maximum number of pending messages for a subscription
-	 * @see Constants#DEFAULT_MAX_PENDING_MSGS
+	 * @see #DEFAULT_MAX_PENDING_MSGS
 	 */	
 	public void setMaxPendingMsgs(int max) {
 		this.maxPendingMsgs = max;
@@ -445,19 +478,26 @@ public class ConnectionFactory implements Cloneable {
 	}
 
 	/**
-	 * Sets the default server URL string
+	 * Sets the default server URL string. 
+	 * <p>
+	 * If {@code url} is a comma-delimited
+	 * list, then {@link #setServers(String)} will be invoked without 
+	 * setting the default server URL string.
 	 * @param url the URL to set
 	 */
 	public void setUrl(String url) {
-		this.urlString=url;
-		if (url==null)
+		if (url==null) {
 			this.url = null;
+		} else if (url.contains(",")) {
+			setServers(url);
+		}
 		else {
 			try {
 				this.setUri(new URI(url));
 			} catch (NullPointerException | URISyntaxException e) {
 				throw new IllegalArgumentException(e);
 			}
+			this.urlString=this.url.toString();
 		}
 	}
 
@@ -541,6 +581,17 @@ public class ConnectionFactory implements Cloneable {
 		this.servers=servers;
 	}
 
+	/**
+	 * Sets the server list from a comma-delimited list
+	 * of server addresses in a single string.
+	 * @param urlString the servers to set
+	 */
+	public void setServers(String urlString) {
+		String[] servers = urlString.trim().split("\\s*,\\s*");
+		this.setServers(servers);
+		System.err.println("Servers = " + getServers());
+	}
+	
 	/**
 	 * Sets the server list from a list of {@code String}
 	 * @param servers the servers to set
@@ -880,6 +931,7 @@ public class ConnectionFactory implements Cloneable {
 	 * Returns the {@link SSLContext} for this connection factory
 	 * @return the {@link SSLContext} for this connection factory
 	 */
+	@Deprecated
 	public SSLContext getSslContext() {
 		return sslContext;
 	}

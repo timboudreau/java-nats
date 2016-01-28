@@ -19,36 +19,34 @@ public final class Constants {
 	private Constants() {}
 	
 	/**
+	 *  @deprecated use {@link ConnectionFactory#DEFAULT_HOST} instead.
+	 *  <p>
 	 * 	Default server host
 	 * <p>
 	 * This property is defined as String {@value #DEFAULT_HOST}
 	 */
+	@Deprecated
 	public static final String	DEFAULT_HOST		= "localhost";
 	/**
+	 *  @deprecated use {@link ConnectionFactory#DEFAULT_PORT} instead.
+	 *  <p>
 	 * Default server port
 	 * <p>
 	 * This property is defined as int {@value #DEFAULT_PORT}
 	 */
+	@Deprecated
 	public static final int DEFAULT_PORT			= 4222;
 	/**
+	 * 	@deprecated use {@link ConnectionFactory#DEFAULT_URL} instead.
+	 *  <p>
 	 * Default server URL 
 	 * <p>
 	 * This property is defined as String {@value #DEFAULT_URL}
 	 */
+	@Deprecated
 	public static final String 	DEFAULT_URL				= 
 			"nats://" + DEFAULT_HOST+ ":" + DEFAULT_PORT;	
-	/**
-	 * Default SSL/TLS protocol version
-	 * <p>
-	 * This property is defined as String {@value #DEFAULT_SSL_PROTOCOL}
-	 */
-	static final String		DEFAULT_SSL_PROTOCOL 	= "TLSv1.2";
 
-	/**
-	 * Maximum size of a control line (message header)
-	 */
-	final static int 		MAX_CONTROL_LINE_SIZE = 1024;
-	
 	/**
 	 * Connection states for {@link Connection#getState()}
 	 */

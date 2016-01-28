@@ -134,8 +134,9 @@ class ConnectionImpl implements Connection {
 	private int pout;
 
 	// Initialized in readLoop
-	protected Parser parser					= null;
+	protected Parser parser					= new Parser(this);
 	protected Parser.ParseState ps			= null;
+
 	protected MsgArg msgArgs				= null;
 	protected byte[] pingProtoBytes			= null;
 	protected int pingProtoBytesLen			= 0;
@@ -192,7 +193,7 @@ class ConnectionImpl implements Connection {
 		crlfProtoBytesLen = crlfProtoBytes.length;
 
 		// predefine the start of the publish protocol message.
-		buildPublishProtocolBuffer(MAX_CONTROL_LINE_SIZE);
+		buildPublishProtocolBuffer(Parser.MAX_CONTROL_LINE_SIZE);
 
 		setupServerPool();
 	}
@@ -1072,14 +1073,19 @@ logger.trace("doReconnect finished successfully!");
 		String u = url.getUserInfo();
 		String user = null;
 		String pass = null;
+		String token = null;
 
 		if (u != null) {
+			// if no password, assume username is authToken
 			String[] userpass = u.split(":");
 			if (userpass[0].length() > 0) {
-				user = userpass[0];
 				switch (userpass.length)
 				{
+				case 1:
+					token = userpass[0];
+					break;
 				case 2:
+					user = userpass[0];
 					pass = userpass[1];
 					break;
 				default:
@@ -1089,7 +1095,7 @@ logger.trace("doReconnect finished successfully!");
 		}
 
 		ConnectInfo info = new ConnectInfo(opts.isVerbose(), opts.isPedantic(), user, pass,
-				opts.isSecure(), opts.getConnectionName());
+				token, opts.isSecure(), opts.getConnectionName());
 
 		String result = String.format(CONN_PROTO, info.toJson());
 		return result;
@@ -1273,17 +1279,20 @@ logger.trace("doReconnect finished successfully!");
 		private Boolean pedantic;
 		private String user;
 		private String pass;
+		private String token;
 		private Boolean ssl;
 		private String name;
 		private String lang = ConnectionImpl.LANG_STRING;
 		private String version = ConnectionImpl.this.version;
 
-		public ConnectInfo(boolean verbose, boolean pedantic, String username, String password, boolean secure,
+		public ConnectInfo(boolean verbose, boolean pedantic, String username, String password, String token,
+				boolean secure,
 				String connectionName) {
 			this.verbose = new Boolean(verbose);
 			this.pedantic = new Boolean(pedantic);
 			this.user = username;
 			this.pass = password;
+			this.token = token;
 			this.ssl = new Boolean(secure);
 			this.name = connectionName;
 		}
@@ -1299,6 +1308,10 @@ logger.trace("doReconnect finished successfully!");
 					sb.append(String.format( "\"pass\":\"%s\",",pass));
 				}
 			}
+			if (token != null) {
+				sb.append(String.format( "\"auth_token\":\"%s\",", token));
+			}
+
 			sb.append(String.format("\"ssl_required\":%s,\"name\":\"%s\",\"lang\":\"%s\",\"version\":\"%s\"}", 
 					ssl.toString(), (name != null) ? name : "", lang, version
 					));
@@ -1346,11 +1359,9 @@ logger.trace("doReconnect finished successfully!");
 		// stack copy
 		TCPConnection conn = null;
 
-		// Create a parseState of needed/
 		mu.lock();
 		try {
-			if (this.ps == null)
-				parser = new Parser(this);
+			parser = this.parser;
 			this.ps = parser.ps;
 		} finally {
 			mu.unlock();
@@ -2075,7 +2086,7 @@ logger.trace("flush({}): after removeFlushEntry(ch), throwing", timeout, timeout
 			{
 				// We can get here if we have very large subjects.
 				// Expand with some room to spare.
-				int resizeAmount = MAX_CONTROL_LINE_SIZE + subject.length()
+				int resizeAmount = Parser.MAX_CONTROL_LINE_SIZE + subject.length()
 				+ (reply != null ? reply.length() : 0);
 
 				buildPublishProtocolBuffer(resizeAmount);

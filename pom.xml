@@ -76,7 +76,8 @@
 						</configuration>
 						<executions>
 							<execution>
-								<id>run-unit-tests</id>
+								<!-- <id>run-unit-tests</id> -->
+								<id>default-test</id>
 								<goals>
 									<goal>test</goal>
 								</goals>
@@ -119,6 +120,7 @@
 				<artifactId>maven-gpg-plugin</artifactId>
 				<version>1.6</version>
 				<configuration>
+					<executable>gpg2</executable>
 					<useAgent>true</useAgent>
 				</configuration>
 				<executions>
