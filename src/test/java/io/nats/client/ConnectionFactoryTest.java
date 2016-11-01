@@ -30,6 +30,8 @@ import static io.nats.client.ConnectionFactory.PROP_TLS_DEBUG;
 import static io.nats.client.ConnectionFactory.PROP_URL;
 import static io.nats.client.ConnectionFactory.PROP_USERNAME;
 import static io.nats.client.ConnectionFactory.PROP_VERBOSE;
+import static io.nats.client.UnitTestUtilities.newMockedTcpConnectionFactory;
+import static io.nats.client.UnitTestUtilities.setLogLevel;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -39,6 +41,7 @@ import static org.junit.Assert.fail;
 
 import io.nats.client.Constants.ConnState;
 
+import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 
 import org.junit.After;
@@ -49,6 +52,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
@@ -69,6 +74,9 @@ public class ConnectionFactoryTest
 
     static final LogVerifier verifier = new LogVerifier();
 
+    @Mock
+    public TcpConnection tcpMock;
+
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
@@ -82,10 +90,16 @@ public class ConnectionFactoryTest
     public static void tearDownAfterClass() throws Exception {}
 
     @Before
-    public void setUp() throws Exception {}
+    public void setUp() throws Exception {
+        MockitoAnnotations.initMocks(this);
+        verifier.setup();
+    }
 
     @After
-    public void tearDown() throws Exception {}
+    public void tearDown() throws Exception {
+        verifier.teardown();
+        setLogLevel(Level.WARN);
+    }
 
     @Test(expected = IllegalArgumentException.class)
     public void testConnectionFactoryNullProperties() {
@@ -254,7 +268,6 @@ public class ConnectionFactoryTest
         ArrayList<URI> s1 = new ArrayList<URI>(10);
         ArrayList<URI> s2 = new ArrayList<URI>(10);
 
-        TcpConnectionFactoryMock mcf = new TcpConnectionFactoryMock();
         for (String s : servers) {
             s1.add(URI.create(s));
             s2.add(URI.create(s));
@@ -265,36 +278,35 @@ public class ConnectionFactoryTest
         assertNotNull(cf.getServers());
         assertEquals(s1, cf.getServers());
         cf.setNoRandomize(true);
-        ConnectionImpl c = null;
+        ConnectionImpl conn = null;
+        TcpConnectionFactory tcf = newMockedTcpConnectionFactory();
         try {
-            c = cf.createConnection(mcf);
+            conn = cf.createConnection(tcf);
         } catch (IOException | TimeoutException e) {
             fail(e.getMessage());
         }
 
         // test passed-in options
-        List<URI> serverList = c.opts.getServers();
+        // TODO change to Connection#getServers once implemented
+        List<URI> serverList = conn.opts.getServers();
         assertEquals(s1, serverList);
 
         // Test the URLS produced by setupServerPool
         List<URI> connServerPool = new ArrayList<URI>();
-        List<ConnectionImpl.Srv> srvPool = c.srvPool;
-        c.close();
-        assertTrue(c.getState() == ConnState.CLOSED);
+        List<ConnectionImpl.Srv> srvPool = conn.srvPool;
+        conn.close();
+        assertTrue(conn.getState() == ConnState.CLOSED);
         for (ConnectionImpl.Srv srv : srvPool) {
             connServerPool.add(srv.url);
         }
         assertEquals(s1, connServerPool);
-
-        TcpConnectionMock mock = (TcpConnectionMock) c.getTcpConnection();
-        mock.bounce();
 
         // test url, null
         cf = new ConnectionFactory(url, null);
         cf.setNoRandomize(true);
         assertEquals(url, cf.getUrlString());
         // System.err.println("Connecting to: " + url);
-        try (ConnectionImpl c2 = cf.createConnection(mcf)) {
+        try (ConnectionImpl c2 = cf.createConnection(tcf)) {
             // test passed-in options
             assertNull(c2.opts.getServers());
 
@@ -315,14 +327,12 @@ public class ConnectionFactoryTest
         s1.addAll(s2);
         assertEquals(s1, s2);
 
-        mock.bounce();
-
         // test url, servers
         cf = new ConnectionFactory(url, servers);
         cf.setNoRandomize(true);
         assertNotNull(cf.getUrlString());
         assertEquals(url, cf.getUrlString());
-        try (ConnectionImpl c2 = cf.createConnection(mcf)) {
+        try (ConnectionImpl c2 = cf.createConnection(tcf)) {
             // test passed-in options
             serverList = c2.opts.getServers();
             assertEquals(s1, serverList);
@@ -604,7 +614,7 @@ public class ConnectionFactoryTest
 
         assertNull(cf.getUrlString());
 
-        TcpConnectionFactoryMock mcf = new TcpConnectionFactoryMock();
+        TcpConnectionFactory mcf = newMockedTcpConnectionFactory();
         for (String s : servers) {
             s1.add(URI.create(s));
         }

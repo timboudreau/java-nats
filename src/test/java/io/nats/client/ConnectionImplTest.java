@@ -599,9 +599,9 @@ public class ConnectionImplTest {
 
     @Test
     public void testProcessAsyncInfo() throws IOException, TimeoutException {
-        ServerInfo info = ServerInfo.createFromWire(TcpConnectionMock.defaultAsyncInfo);
+        ServerInfo info = ServerInfo.createFromWire(UnitTestUtilities.defaultAsyncInfo);
         try (ConnectionImpl c = (ConnectionImpl) newMockedConnection()) {
-            c.processAsyncInfo(TcpConnectionMock.defaultAsyncInfo.trim());
+            c.processAsyncInfo(UnitTestUtilities.defaultAsyncInfo.trim());
             assertEquals(info, c.getConnectedServerInfo());
         }
     }
@@ -612,25 +612,25 @@ public class ConnectionImplTest {
         thrown.expectMessage("test message");
         try (ConnectionImpl c = (ConnectionImpl) spy(newMockedConnection())) {
             doThrow(new IllegalStateException("test message")).when(c)
-                    .processInfo(eq(TcpConnectionMock.defaultAsyncInfo.trim()));
-            c.processAsyncInfo(TcpConnectionMock.defaultAsyncInfo.trim());
+                    .processInfo(eq(UnitTestUtilities.defaultAsyncInfo.trim()));
+            c.processAsyncInfo(UnitTestUtilities.defaultAsyncInfo.trim());
         }
     }
 
     @Test
     public void testProcessInfo() throws IOException, TimeoutException {
-        try (ConnectionImpl c = (ConnectionImpl) newMockedConnection()) {
-            ServerInfo info = ServerInfo.createFromWire(TcpConnectionMock.defaultInfo);
-            c.processInfo(TcpConnectionMock.defaultInfo.trim());
+        try (ConnectionImpl c = (ConnectionImpl) newNewMockedConnection()) {
+            ServerInfo info = ServerInfo.createFromWire(UnitTestUtilities.defaultInfo);
+            c.processInfo(UnitTestUtilities.defaultInfo.trim());
             assertEquals(info, c.getConnectedServerInfo());
         }
     }
 
     @Test
     public void testProcessInfoWithConnectUrls() throws IOException, TimeoutException {
-        ServerInfo info = ServerInfo.createFromWire(TcpConnectionMock.defaultAsyncInfo);
+        ServerInfo info = ServerInfo.createFromWire(UnitTestUtilities.defaultAsyncInfo);
         try (ConnectionImpl c = (ConnectionImpl) newMockedConnection()) {
-            c.processInfo(TcpConnectionMock.defaultAsyncInfo.trim());
+            c.processInfo(UnitTestUtilities.defaultAsyncInfo.trim());
             assertEquals(info, c.getConnectedServerInfo());
         }
     }
@@ -751,23 +751,27 @@ public class ConnectionImplTest {
 
     @Test
     public void testResendSubscriptions() throws IOException, TimeoutException {
-        try (ConnectionImpl c = (ConnectionImpl) newMockedConnection()) {
+        try (ConnectionImpl c = (ConnectionImpl) newNewMockedConnection()) {
             AsyncSubscriptionImpl sub =
                     (AsyncSubscriptionImpl) c.subscribe("foo", new MessageHandler() {
                         public void onMessage(Message msg) {
-                            System.err.println("got msg: " + msg);
+                            /* NOOP */
                         }
                     });
             sub.setMax(122);
             assertEquals(122, sub.max);
             sub.delivered = 122;
             assertEquals(122, sub.getDelivered());
+            setLogLevel(Level.TRACE);
             c.resendSubscriptions();
             c.getOutputStream().flush();
             sleep(100);
-            String str = String.format("UNSUB %d", sub.getSid());
-            TcpConnectionMock mock = (TcpConnectionMock) c.getTcpConnection();
-            assertEquals(str, mock.getBuffer());
+            String str = String.format("UNSUB %d\r\n", sub.getSid());
+            // TcpConnectionMock mock = (TcpConnectionMock) c.getTcpConnection();
+            // assertEquals(str, mock.getBuffer());
+            OutputStream bw = c.getOutputStream();
+            verify(c, times(1)).writeUnsubProto(eq(sub), eq(0));
+            verify(bw, times(1)).write(str.getBytes(), 0, str.length());
 
             SyncSubscriptionImpl syncSub = (SyncSubscriptionImpl) c.subscribeSync("foo");
             syncSub.setMax(10);
@@ -777,8 +781,9 @@ public class ConnectionImplTest {
             c.resendSubscriptions();
             c.getOutputStream().flush();
             sleep(100);
-            str = String.format("UNSUB %d %d", syncSub.getSid(), adjustedMax);
-            assertEquals(str, mock.getBuffer());
+            str = String.format("UNSUB %d %d\r\n", syncSub.getSid(), adjustedMax);
+            verify(bw, times(1)).write(str.getBytes(), 0, str.length());
+            // assertEquals(str, mock.getBuffer());
         }
     }
 
@@ -833,7 +838,7 @@ public class ConnectionImplTest {
     public void testGetConnectedServerInfo() throws IOException, TimeoutException {
         try (Connection nc = newMockedConnection()) {
             assertTrue(!nc.isClosed());
-            String expected = TcpConnectionMock.defaultInfo;
+            String expected = UnitTestUtilities.defaultInfo;
             ServerInfo actual = nc.getConnectedServerInfo();
             assertEquals("Wrong server INFO.", expected, actual.toString());
             assertTrue(actual.equals(ServerInfo.createFromWire(expected)));
@@ -1200,9 +1205,8 @@ public class ConnectionImplTest {
     public void testFlushTimeoutFailure() throws Exception {
         thrown.expect(TimeoutException.class);
         thrown.expectMessage(ERR_TIMEOUT);
-        try (ConnectionImpl c = (ConnectionImpl) newMockedConnection()) {
-            TcpConnectionMock mock = (TcpConnectionMock) c.getTcpConnection();
-            mock.setNoPongs(true);
+        try (ConnectionImpl c = (ConnectionImpl) spy(newNewMockedConnection())) {
+            // Default behavior of mock is it doesn't return pongs after the first one
             c.flush(500);
         }
     }
@@ -1797,7 +1801,7 @@ public class ConnectionImplTest {
 
     @Test
     public void testGetSetInputStream() throws IOException, TimeoutException {
-        try (ConnectionImpl conn = (ConnectionImpl) Mockito.spy(newMockedConnection())) {
+        try (ConnectionImpl conn = (ConnectionImpl) newNewMockedConnection()) {
             conn.setInputStream(brMock);
             assertEquals(brMock, conn.getInputStream());
         }

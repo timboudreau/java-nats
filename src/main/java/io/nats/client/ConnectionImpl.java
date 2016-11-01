@@ -1184,14 +1184,14 @@ public class ConnectionImpl implements Connection {
     // This function is only used during the initial connection process
     protected String readLine() throws IOException {
         BufferedReader breader = conn.getBufferedReader();
-        String s = null;
-        logger.trace("readLine() Reading from input stream");
-        s = breader.readLine();
-        if (s == null) {
+        String line = null;
+        // logger.trace("readLine() Reading from input stream");
+        line = breader.readLine();
+        if (line == null) {
             throw new EOFException(ERR_CONNECTION_CLOSED);
         }
-        logger.trace("<= {}", s != null ? s.trim() : "null");
-        return s;
+        // logger.trace("<= {}", line != null ? line.trim() : "null");
+        return line;
     }
 
     /*
