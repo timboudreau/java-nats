@@ -13,7 +13,7 @@
 
     <groupId>io.nats</groupId>
     <artifactId>jnats</artifactId>
-    <version>1.1-SNAPSHOT</version>
+    <version>1.1-mlo</version>
     <packaging>bundle</packaging>
 
     <name>jnats</name>
